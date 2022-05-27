@@ -39,4 +39,4 @@ with ZipFile(zip_path, 'w') as zip:
             print(f'Adicionando o arquivo "{file_name}" ao zip...')
             zip.write(temp_name)
             os.unlink(temp_name)
-print(f'Arquivos salvo em: "{zip_path}"')
+print(f'Arquivo salvo em: "{zip_path}"')
