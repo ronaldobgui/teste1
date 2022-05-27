@@ -23,7 +23,7 @@ def writeTempFile(bytes):
     file.close()
     return file.name
 
-date = datetime.now().strftime('%m_%d_%Y_%H_%M_%S')
+date = datetime.now().strftime('%d_%m_%Y_%H_%M_%S')
 
 print('Iniciando a criação do arquivo zip...')
 zip_name = f'Anexos_Rol_Procedimentos_Eventos_Saúde_{date}.zip'
