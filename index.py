@@ -37,6 +37,6 @@ with ZipFile(zip_path, 'w') as zip:
             file_name = os.path.basename(href)
             temp_name = writeTempFile(requests.get(href).content)
             print(f'Adicionando o arquivo "{file_name}" ao zip...')
-            zip.write(temp_name)
+            zip.write(temp_name, file_name)
             os.unlink(temp_name)
 print(f'Arquivo salvo em: "{zip_path}"')
