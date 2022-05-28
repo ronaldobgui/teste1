@@ -27,7 +27,7 @@ date = datetime.now().strftime('%d_%m_%Y_%H_%M_%S')
 
 print('Iniciando a criação do arquivo zip...')
 zip_name = f'Anexos_Rol_Procedimentos_Eventos_Saúde_{date}.zip'
-zip_path = f'{os.getcwd()}\{zip_name}'
+zip_path = os.path.join(os.getcwd(), zip_name)
 
 with ZipFile(zip_path, 'w') as zip:
     for tag in soup.find_all('a'):
