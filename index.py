@@ -1,6 +1,6 @@
 from datetime import datetime
 import os
-from tempfile import NamedTemporaryFile, mkstemp
+from tempfile import NamedTemporaryFile
 from zipfile import ZipFile
 import requests
 from bs4 import BeautifulSoup
