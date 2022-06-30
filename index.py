@@ -1,45 +1,91 @@
 from datetime import datetime
 import os
+import re
 from tempfile import NamedTemporaryFile
 from zipfile import ZipFile
+from cv2 import exp
 import requests
 from bs4 import BeautifulSoup
 
-def isValidAnexo(title, numeros):
-    return any(f'Anexo {numero}' in title for numero in numeros)
-
 
 def writeTempFile(bytes):
-    file = NamedTemporaryFile(delete=False)
-    file.write(bytes)
-    file.close()
-    return file.name
+    with NamedTemporaryFile(delete=False) as temp_file:
+        temp_file.write(bytes)
+        return temp_file.name
+
+
+class AnexoReference:
+    def __init__(self, file_name, temp_name):
+        self.file_name = file_name
+        self.temp_name = temp_name
 
 
 def baixarAnexos(url, numeros):
     print('Buscando dados da página web...')
-    result = requests.get(url).text
+    try:
+        if len(numeros) == 0:
+            raise Exception('Nenhum anexo foi definido para download...')
 
-    print('Fazendo parse dos dados...')
-    soup = BeautifulSoup(result, 'html.parser')
+        result = requests.get(url).text
 
-    date = datetime.now().strftime('%d_%m_%Y_%H_%M_%S')
+        # fazendo parse dos dados
+        soup = BeautifulSoup(result, 'html.parser')
 
-    print('Iniciando a criação do arquivo zip...')
-    zip_name = f'Anexos_{"_".join(numeros)}_Rol_Procedimentos_Eventos_Saúde_{date}.zip'
-    zip_path = os.path.join(os.getcwd(), zip_name)
+        regex_anexo = re.compile(f'anexo ({"|".join(numeros)})', re.IGNORECASE)
+        tags_anexo = soup.find_all('a', string=regex_anexo)
 
-    with ZipFile(zip_path, 'w') as zip:
-        for tag in soup.find_all('a'):
-            text = str(tag.string)
-            if isValidAnexo(text, numeros):
-                href = tag.get('href')
-                file_name = os.path.basename(href)
-                temp_name = writeTempFile(requests.get(href).content)
-                print(f'Adicionando o arquivo "{file_name}" ao zip...')
-                zip.write(temp_name, file_name)
-                os.unlink(temp_name)
-    print(f'Arquivo salvo em: "{zip_path}"')
+        refs_anexo = []
+
+        # baixando anexos
+        for tag_anexo in tags_anexo:
+            href = tag_anexo.get('href')
+            file_name = os.path.basename(href)
+            print(f'Baixando o anexo "{file_name}"...')
+
+            try:
+                reference = AnexoReference(
+                    file_name=file_name,
+                    temp_name=writeTempFile(requests.get(href).content),
+                )
+                refs_anexo.append(reference)
+
+            except requests.RequestException:
+                print(f'Erro ao baixar anexo {file_name} (ignorando...)')
+
+            except Exception:
+                print(f'Erro ao salvar anexo {file_name} (ignorando...)')
+
+        if len(tags_anexo) == 0:
+            raise Exception('Nenhum anexo foi encontrado...')
+
+        date = datetime.now().strftime('%d_%m_%Y_%H_%M_%S')
+
+        print('Iniciando a criação do arquivo zip...')
+        zip_name = f'Anexos_{"_".join(numeros)}_Rol_Procedimentos_Eventos_Saúde_{date}.zip'
+        zip_path = os.path.join(os.getcwd(), zip_name)
+
+        try:
+            with ZipFile(zip_path, 'w') as zip:
+                for ref in refs_anexo:
+                    zip.write(ref.temp_name, ref.file_name)
+        except:
+            if(os.path.exists(zip_path)):
+                os.unlink(zip_path)
+
+            raise Exception('Erro ao salvar arquivo zip...')
+
+        print(f'Deletando arquivos temporários...')
+        for ref in refs_anexo:
+            if(os.path.exists(zip_path)):
+                os.unlink(ref.temp_name)
+
+        print(f'Arquivo salvo em: "{zip_path}"')
+
+    except requests.RequestException:
+        print('Houve um problema ao recuperar os dado da página web...')
+
+    except Exception as e:
+        print(f'Erro: {e}')
 
 
 baixarAnexos(
